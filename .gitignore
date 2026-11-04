@@ -1,0 +1,66 @@
+### Java & Spring Boot ###
+*.class
+*.log
+*.ctxt
+.sts4-cache/
+.springBeans
+.project
+.classpath
+.factorypath
+*.lock
+
+### Build & Package Files ###
+target/
+build/
+out/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!.gradle/
+build.log
+
+### VS Code ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+# Uncomment the line below if you want to ignore workspace-specific state
+# .vscode/.history/
+
+### MySQL / Database Data ###
+# Ignore local data volumes and dump files if stored in the repo root
+/mysql/
+/volume-data/
+/data/
+*.sql
+*.sqlite
+*.mv.db
+*.h2.db
+overridedb.*
+dump.rdb
+
+### Docker & Environment ###
+# Keep docker-compose.yml and Dockerfile, but ignore local env and runtime data
+.env
+.env.local
+.env.*.local
+docker-compose.override.yml
+*.pid
+*.seed
+*.pid.lock
+
+### OS & System Files ###
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+.#*
+*.swp
+*.swo
+
+### IDEs (IntelliJ & Eclipse - optional safety net) ###
+.idea/
+*.iml
+*.ipr
+*.iws
+*.apt_generated/
