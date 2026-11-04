@@ -199,10 +199,24 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 ## Running Tests
 
-Unit tests and validation can be executed with:
+### Automated Unit Tests
 ```bash
 cd catalog-service
 ./mvnw test
+```
+
+### Automated API Test Suite
+A modular bash test suite is located in the [`api-tests/`](api-tests/) directory. Run all test suites or target a specific module:
+
+```bash
+# Run all test suites against port 8083 (or export BASE_URL)
+./api-tests/run-tests.sh
+
+# Or run individual modules:
+./api-tests/run-tests.sh software
+./api-tests/run-tests.sh versions
+./api-tests/run-tests.sh downloads
+./api-tests/run-tests.sh auth
 ```
 
 Includes:

@@ -378,3 +378,4 @@ curl -i -X POST "$BASE_URL/software" \
 - **Expected Status:** `403 Forbidden`
 - **Expected Response:** `{"status":403,"error":"Forbidden","message":"Insufficient role"}`
 
+ 
