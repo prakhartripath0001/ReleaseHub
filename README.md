@@ -122,6 +122,8 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 ## API Reference & Sample Requests
 
+> For the complete step-by-step manual testing guide with sample responses and error checks, see [`docs/api-testing.md`](docs/api-testing.md).
+
 ### Software Endpoints
 
 - **Create Software** *(Requires `X-Role: PUBLISHER` or `ADMIN`)*

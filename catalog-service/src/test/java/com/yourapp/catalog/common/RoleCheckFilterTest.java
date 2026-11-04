@@ -1,3 +1,4 @@
+
 package com.yourapp.catalog.common;
 
 import com.yourapp.catalog.common.security.RoleCheckFilter;
