@@ -4,12 +4,9 @@ import com.yourapp.catalog.software.dto.request.CreateSoftwareRequest;
 import com.yourapp.catalog.software.dto.request.UpdateSoftwareRequest;
 import com.yourapp.catalog.software.dto.response.SoftwareResponse;
 import com.yourapp.catalog.software.entity.SoftwareEntity;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface SoftwareMapper {
 
     SoftwareEntity toEntity(CreateSoftwareRequest request);
@@ -19,4 +16,3 @@ public interface SoftwareMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntity(@MappingTarget SoftwareEntity entity, UpdateSoftwareRequest request);
 }
-
