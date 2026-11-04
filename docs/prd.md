@@ -1,7 +1,7 @@
 # ReleaseHub — Product Requirements Document
 
 > **Version:** 1.0 (Draft) &nbsp;|&nbsp; **Type:** Portfolio / Learning Project  
-> **Stack:** Java · Spring Boot · PostgreSQL · Elasticsearch · Kafka · Kong · Docker · Kubernetes · Prometheus · Grafana
+> **Stack:** Java · Spring Boot · MySQL · Elasticsearch · Kafka · Kong · Docker · Kubernetes · Prometheus · Grafana
 
 ---
 
@@ -152,7 +152,7 @@ Users struggle to find the right software version and to know whether it is reli
 
 ## 8. System Architecture
 
-**Components:** React client *(optional)* · Kong Gateway · Catalog Service · Feedback Service · Analytics Service · PostgreSQL · Elasticsearch · Kafka · Prometheus · Grafana · Loki
+**Components:** React client *(optional)* · Kong Gateway · Catalog Service · Feedback Service · Analytics Service · MySQL · Elasticsearch · Kafka · Prometheus · Grafana · Loki
 
 ### Request Flow — Feedback
 
@@ -217,7 +217,7 @@ report_aggregate(software_id, version_id, date, downloads, avg_rating, feedback_
 | Layer | Tooling |
 |-------|---------|
 | **Unit tests** | JUnit 5 + Mockito for services, validators, and mappers |
-| **Integration tests** | Testcontainers for PostgreSQL, Kafka, and Elasticsearch |
+| **Integration tests** | Testcontainers for MySQL, Kafka, and Elasticsearch |
 | **Contract checks** | Verify event schemas between producer and consumer |
 | **Coverage gate** | JaCoCo in CI — build fails below 80% |
 | **Load test** | k6 script for search and download endpoints, used to demonstrate autoscaling |

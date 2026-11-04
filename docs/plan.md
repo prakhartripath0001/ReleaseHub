@@ -49,7 +49,7 @@ releasehub/
 - [ ] Add a root `README.md` with a one-command startup guide.
 - [ ] Add `.gitignore` for Java, Docker, and IDE files.
 - [ ] Add `docker-compose.yml` with:
-  - PostgreSQL (port 5432)
+  - MySQL (port 3306)
   - Kafka + Zookeeper (or Redpanda as a single-container alternative)
   - Elasticsearch (port 9200)
   - Prometheus (port 9090)
@@ -73,7 +73,7 @@ Build the core CRUD API for `Software` and `Version`, with full validation, erro
 ### Stack additions this phase
 
 - Spring Data JPA + Flyway (database migrations)
-- PostgreSQL (already in Docker Compose)
+- MySQL (already in Docker Compose)
 - MapStruct (DTO mapping)
 - JUnit 5 + Mockito
 - Testcontainers (integration tests)
@@ -138,7 +138,7 @@ Build the core CRUD API for `Software` and `Version`, with full validation, erro
 **Testing**
 
 - [ ] Unit tests for all service methods (Mockito mocks for repositories).
-- [ ] Integration tests with `@SpringBootTest` + Testcontainers PostgreSQL for each controller.
+- [ ] Integration tests with `@SpringBootTest` + Testcontainers MySQL for each controller.
 - [ ] JaCoCo plugin configured; build fails below 80%.
 
 **Definition of done**
@@ -184,7 +184,7 @@ Index software and version metadata in Elasticsearch and expose a fuzzy, faceted
 - [ ] `SearchIndexer` service:
   - Triggered by an application event published from `SoftwareService` on create/update/delete.
   - Calls Elasticsearch to upsert or delete the document.
-- [ ] `ReindexJob`: reads all software from PostgreSQL and bulk-indexes to a new index version, then atomically swaps the alias.
+- [ ] `ReindexJob`: reads all software from MySQL and bulk-indexes to a new index version, then atomically swaps the alias.
 
 **Search endpoint**
 
