@@ -45,9 +45,20 @@ class RoleCheckFilterTest {
     }
 
     @Test
-    void doFilter_shouldAllowPostWithPublisherRole() throws Exception {
+    void doFilter_shouldAllowPostWithXRolePublisher() throws Exception {
         when(request.getMethod()).thenReturn("POST");
         when(request.getHeader("X-Role")).thenReturn("PUBLISHER");
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_shouldAllowPostWithXUserRolePublisher() throws Exception {
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getHeader("X-Role")).thenReturn(null);
+        when(request.getHeader("X-User-Role")).thenReturn("PUBLISHER");
 
         filter.doFilter(request, response, chain);
 
@@ -68,6 +79,7 @@ class RoleCheckFilterTest {
     void doFilter_shouldBlockPostWithoutRole() throws Exception {
         when(request.getMethod()).thenReturn("POST");
         when(request.getHeader("X-Role")).thenReturn(null);
+        when(request.getHeader("X-User-Role")).thenReturn(null);
 
         StringWriter stringWriter = new StringWriter();
         PrintWriter writer = new PrintWriter(stringWriter);
@@ -95,4 +107,3 @@ class RoleCheckFilterTest {
         verify(chain, never()).doFilter(request, response);
     }
 }
-

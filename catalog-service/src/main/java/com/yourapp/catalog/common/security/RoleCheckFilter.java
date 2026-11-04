@@ -14,7 +14,8 @@ import java.util.Set;
 
 /**
  * Role check filter for write operations.
- * Requires X-Role header containing PUBLISHER or ADMIN for POST, PUT, DELETE requests.
+ * Accepts either X-Role or X-User-Role header containing PUBLISHER or ADMIN
+ * for POST, PUT, DELETE requests.
  */
 @Component
 public class RoleCheckFilter implements Filter {
@@ -31,7 +32,11 @@ public class RoleCheckFilter implements Filter {
 
         if (WRITE_METHODS.contains(req.getMethod())) {
             String role = req.getHeader("X-Role");
-            if (role == null || !ALLOWED_ROLES.contains(role.toUpperCase())) {
+            if (role == null || role.isBlank()) {
+                role = req.getHeader("X-User-Role");
+            }
+
+            if (role == null || !ALLOWED_ROLES.contains(role.trim().toUpperCase())) {
                 res.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 res.setContentType("application/json");
                 res.getWriter().write("""
@@ -43,4 +48,3 @@ public class RoleCheckFilter implements Filter {
         chain.doFilter(request, response);
     }
 }
-
