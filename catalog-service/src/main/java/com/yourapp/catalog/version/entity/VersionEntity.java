@@ -44,3 +44,4 @@ public class VersionEntity {
         if (releasedAt == null) releasedAt = LocalDateTime.now();
     }
 }
+

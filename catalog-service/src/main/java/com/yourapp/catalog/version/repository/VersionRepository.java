@@ -11,3 +11,4 @@ import java.util.List;
 public interface VersionRepository extends JpaRepository<VersionEntity, String> {
     List<VersionEntity> findBySoftwareId(String softwareId, Sort sort);
 }
+

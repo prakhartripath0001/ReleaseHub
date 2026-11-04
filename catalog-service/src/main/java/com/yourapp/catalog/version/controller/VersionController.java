@@ -39,3 +39,4 @@ public class VersionController {
         return ResponseEntity.noContent().build();
     }
 }
+

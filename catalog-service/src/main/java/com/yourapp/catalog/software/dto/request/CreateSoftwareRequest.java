@@ -18,3 +18,4 @@ public class CreateSoftwareRequest {
     @NotBlank(message = "Publisher ID is required")
     private String publisherId;
 }
+

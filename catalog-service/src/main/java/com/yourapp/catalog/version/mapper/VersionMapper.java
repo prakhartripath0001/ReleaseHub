@@ -15,3 +15,4 @@ public interface VersionMapper {
     @Mapping(source = "software.id", target = "softwareId")
     VersionResponse toResponse(VersionEntity entity);
 }
+

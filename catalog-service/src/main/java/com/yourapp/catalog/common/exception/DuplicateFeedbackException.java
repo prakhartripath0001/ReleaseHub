@@ -5,3 +5,4 @@ public class DuplicateFeedbackException extends RuntimeException {
         super(message);
     }
 }
+

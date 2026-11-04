@@ -19,3 +19,4 @@ public interface SoftwareMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntity(@MappingTarget SoftwareEntity entity, UpdateSoftwareRequest request);
 }
+

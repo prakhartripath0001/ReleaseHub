@@ -26,3 +26,4 @@ public class SoftwareSpecification {
         return (root, query, cb) -> cb.conjunction();
     }
 }
+

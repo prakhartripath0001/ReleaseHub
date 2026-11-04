@@ -20,3 +20,4 @@ public class DownloadController {
         return ResponseEntity.ok(service.recordAndResolve(versionId, userId));
     }
 }
+

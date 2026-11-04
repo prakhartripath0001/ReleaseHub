@@ -12,3 +12,4 @@ public class DownloadResponse {
     private String versionId;
     private String message;
 }
+

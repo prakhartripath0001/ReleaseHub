@@ -37,3 +37,4 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(500, "Internal Server Error", ex.getMessage()));
     }
 }
+

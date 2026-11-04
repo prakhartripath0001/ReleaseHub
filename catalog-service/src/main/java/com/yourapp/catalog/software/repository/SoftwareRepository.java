@@ -9,3 +9,4 @@ import org.springframework.stereotype.Repository;
 public interface SoftwareRepository extends JpaRepository<SoftwareEntity, String>,
         JpaSpecificationExecutor<SoftwareEntity> {
 }
+

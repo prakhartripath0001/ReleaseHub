@@ -15,3 +15,4 @@ public class SoftwareResponse {
     private String publisherId;
     private LocalDateTime createdAt;
 }
+

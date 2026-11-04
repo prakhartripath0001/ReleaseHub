@@ -34,3 +34,4 @@ public class DownloadEventEntity {
         if (ts == null) ts = LocalDateTime.now();
     }
 }
+

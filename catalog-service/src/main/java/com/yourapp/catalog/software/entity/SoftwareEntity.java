@@ -44,3 +44,4 @@ public class SoftwareEntity {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }
+

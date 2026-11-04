@@ -14,3 +14,4 @@ public class VersionResponse {
     private String fileRef;
     private LocalDateTime releasedAt;
 }
+
