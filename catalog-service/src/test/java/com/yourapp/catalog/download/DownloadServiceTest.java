@@ -11,11 +11,10 @@ import com.yourapp.catalog.software.entity.SoftwareEntity;
 import com.yourapp.catalog.download.service.DownloadService;
 import com.yourapp.catalog.version.entity.VersionEntity;
 import com.yourapp.catalog.version.repository.VersionRepository;
-import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -44,16 +43,18 @@ class DownloadServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
-    @Mock
-    private MeterRegistry meterRegistry;
-
-    @InjectMocks
     private DownloadService service;
 
     private VersionEntity version;
 
     @BeforeEach
     void setUp() {
+        service = new DownloadService(
+                versionRepository,
+                downloadEventRepository,
+                outboxEventRepository,
+                objectMapper,
+                new SimpleMeterRegistry());
         version = new VersionEntity();
         version.setId(UUID.randomUUID().toString());
         version.setVersionNumber("1.0.0");
