@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: releasehub
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: releasehub-config
+  namespace: releasehub
+data:
+  DB_HOST: mysql.default.svc.cluster.local
+  DB_PORT: "3306"
+  DB_NAME: releasehub
+  DB_USERNAME: releasehub
+  KAFKA_BOOTSTRAP_SERVERS: kafka.default.svc.cluster.local:9092
+  ELASTICSEARCH_URI: http://elasticsearch.default.svc.cluster.local:9200
+  SEARCH_SERVICE_URL: http://search-service:8084
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: releasehub
+data:
+  kong.yml: |
+    _format_version: "3.0"
+    _transform: true
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: iss
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: local
+          fault_tolerant: false
+      - name: cors
+        config:
+          origins: ["*"]
+          methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+          headers: [Accept, Authorization, Content-Type, X-Correlation-ID, X-Role, X-User-Role, X-User-Id]
+          exposed_headers: [X-Correlation-ID]
+          credentials: true
+      - name: correlation-id
+        config:
+          header_name: X-Correlation-ID
+          generator: uuid
+          echo_downstream: true

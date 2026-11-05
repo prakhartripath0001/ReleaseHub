@@ -1,0 +1,28 @@
+groups:
+  - name: releasehub
+    rules:
+      - alert: HighServiceErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (application)
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count[5m])) by (application), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 5xx rate for {{ $labels.application }}"
+      - alert: KafkaConsumerLag
+        expr: sum(kafka_consumergroup_lag) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is above 1000 messages"
+      - alert: KubernetesPodRestartRate
+        expr: increase(kube_pod_container_status_restarts_total[10m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A pod has restarted more than 3 times in 10 minutes"

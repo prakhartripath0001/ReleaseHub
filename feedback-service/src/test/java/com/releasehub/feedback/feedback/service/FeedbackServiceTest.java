@@ -7,6 +7,7 @@ import com.releasehub.feedback.feedback.entity.FeedbackEntity;
 import com.releasehub.feedback.feedback.repository.FeedbackRepository;
 import com.releasehub.feedback.outbox.OutboxEventEntity;
 import com.releasehub.feedback.outbox.OutboxEventRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +46,8 @@ class FeedbackServiceTest {
                 feedbackRepository,
                 outboxRepository,
                 versionLookupRepository,
-                new ObjectMapper().findAndRegisterModules());
+                new ObjectMapper().findAndRegisterModules(),
+                new SimpleMeterRegistry());
     }
 
     @Test

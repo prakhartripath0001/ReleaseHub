@@ -4,6 +4,8 @@ import com.analytics_service.event.DownloadCompletedEvent;
 import com.analytics_service.event.FeedbackSubmittedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +24,12 @@ public class AnalyticsEventProcessor {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
-    public AnalyticsEventProcessor(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+    public AnalyticsEventProcessor(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @Transactional
@@ -51,6 +55,10 @@ public class AnalyticsEventProcessor {
                     feedback_count = feedback_count + VALUES(feedback_count),
                     updated_at = VALUES(updated_at)
                 """, event.softwareId(), event.rating(), event.rating());
+        Counter.builder("releasehub.kafka.events.processed")
+                .tag("event_type", FEEDBACK_TOPIC)
+                .register(meterRegistry)
+                .increment();
     }
 
     @Transactional
@@ -70,6 +78,10 @@ public class AnalyticsEventProcessor {
                     downloads = downloads + 1,
                     updated_at = CURRENT_TIMESTAMP(6)
                 """, event.softwareId());
+        Counter.builder("releasehub.kafka.events.processed")
+                .tag("event_type", DOWNLOAD_TOPIC)
+                .register(meterRegistry)
+                .increment();
     }
 
     private boolean registerOnce(String eventId, String eventType) {

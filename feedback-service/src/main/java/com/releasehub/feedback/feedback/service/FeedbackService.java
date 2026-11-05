@@ -10,6 +10,8 @@ import com.releasehub.feedback.feedback.event.FeedbackSubmittedEvent;
 import com.releasehub.feedback.feedback.repository.FeedbackRepository;
 import com.releasehub.feedback.outbox.OutboxEventEntity;
 import com.releasehub.feedback.outbox.OutboxEventRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
@@ -24,15 +26,18 @@ public class FeedbackService {
     private final OutboxEventRepository outboxRepository;
     private final VersionLookupRepository versionLookupRepository;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
     public FeedbackService(FeedbackRepository feedbackRepository,
                            OutboxEventRepository outboxRepository,
                            VersionLookupRepository versionLookupRepository,
-                           ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper,
+                           MeterRegistry meterRegistry) {
         this.feedbackRepository = feedbackRepository;
         this.outboxRepository = outboxRepository;
         this.versionLookupRepository = versionLookupRepository;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @Transactional
@@ -80,6 +85,10 @@ public class FeedbackService {
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Could not serialize feedback event " + saved.getId(), ex);
         }
+        Counter.builder("releasehub.feedback.submissions")
+                .description("Successfully submitted feedback")
+                .register(meterRegistry)
+                .increment();
         return toResponse(saved);
     }
 

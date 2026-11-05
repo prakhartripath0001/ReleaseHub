@@ -1,0 +1,53 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: catalog
+    url: http://catalog-service:8083
+    routes:
+      - name: catalog-route
+        paths: [/api/catalog]
+        strip_path: true
+  - name: search
+    url: http://search-service:8084
+    routes:
+      - name: search-route
+        paths: [/api/search]
+        strip_path: true
+  - name: feedback
+    url: http://feedback-service:8085
+    routes:
+      - name: feedback-route
+        paths: [/api/feedback]
+        strip_path: true
+  - name: reports
+    url: http://analytics-service:8086
+    routes:
+      - name: reports-route
+        paths: [/api/reports]
+        strip_path: true
+
+plugins:
+  - name: jwt
+    config:
+      key_claim_name: iss
+      claims_to_verify: [exp]
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+      fault_tolerant: false
+      hide_client_headers: false
+  - name: cors
+    config:
+      origins: [http://localhost:3000, http://127.0.0.1:3000]
+      methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+      headers: [Accept, Authorization, Content-Type, X-Correlation-ID, X-Role, X-User-Role, X-User-Id]
+      exposed_headers: [X-Correlation-ID, X-RateLimit-Limit-Minute, X-RateLimit-Remaining-Minute]
+      credentials: true
+      max_age: 3600
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid
+      echo_downstream: true

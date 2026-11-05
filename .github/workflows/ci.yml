@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
@@ -6,123 +6,75 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Build & Test (Catalog Service)
+  build-and-test:
+    name: Test ${{ matrix.service }}
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: releasehub_test
-          MYSQL_USER: test
-          MYSQL_PASSWORD: test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [catalog-service, search-service, feedback-service, analytics-service]
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: temurin
           cache: maven
-          cache-dependency-path: 'catalog-service/pom.xml'
+          cache-dependency-path: ${{ matrix.service }}/pom.xml
 
-      - name: Grant execute permission for Maven wrapper
-        run: chmod +x ./catalog-service/mvnw
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: chmod +x mvnw && ./mvnw -B clean verify
 
-      - name: Run tests with JaCoCo coverage check
-        working-directory: catalog-service
-        run: ./mvnw clean test
-        env:
-          DB_HOST: localhost
-          DB_PORT: 3306
-          DB_NAME: releasehub_test
-          DB_USERNAME: test
-          DB_PASSWORD: test
-
-      - name: Upload Surefire test results
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-test-results
-          path: catalog-service/target/surefire-reports/
+          name: ${{ matrix.service }}-test-reports
+          path: ${{ matrix.service }}/target/surefire-reports/
+          if-no-files-found: ignore
 
-      - name: Upload JaCoCo coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-coverage-report
-          path: catalog-service/target/site/jacoco/
-
-  search-test:
-    name: Build & Test (Search Service)
+  build-and-push:
+    name: Publish ${{ matrix.service }}
     runs-on: ubuntu-latest
-
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [catalog-service, search-service, feedback-service, analytics-service]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-          cache-dependency-path: 'search-service/pom.xml'
-
-      - name: Grant execute permission for Maven wrapper
-        run: chmod +x ./search-service/mvnw
-
-      - name: Run search service tests
-        working-directory: search-service
-        run: ./mvnw clean test
-
-  docker:
-    name: Build & Push Docker Image
-    runs-on: ubuntu-latest
-    needs: [test, search-test]
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: env.DOCKERHUB_USERNAME != ''
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Catalog Service image
-        if: env.DOCKERHUB_USERNAME != ''
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        uses: docker/build-push-action@v5
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
-          context: ./catalog-service
-          file: ./catalog-service/Dockerfile
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/releasehub-catalog-service:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/releasehub-catalog-service:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/releasehub-${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/releasehub-${{ matrix.service }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-

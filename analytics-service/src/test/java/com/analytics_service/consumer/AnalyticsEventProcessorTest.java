@@ -2,6 +2,7 @@ package com.analytics_service.consumer;
 
 import com.analytics_service.event.FeedbackSubmittedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +38,7 @@ class AnalyticsEventProcessorTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper().findAndRegisterModules();
-        processor = new AnalyticsEventProcessor(jdbcTemplate, objectMapper);
+        processor = new AnalyticsEventProcessor(jdbcTemplate, objectMapper, new SimpleMeterRegistry());
     }
 
     @Test

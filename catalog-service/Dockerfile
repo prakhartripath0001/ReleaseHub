@@ -1,24 +1,12 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
+COPY . .
+RUN chmod +x mvnw && ./mvnw -B -DskipTests package
+
+FROM eclipse-temurin:21-jre
+RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 WORKDIR /app
-
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
-
-RUN chmod +x ./mvnw
-RUN ./mvnw dependency:go-offline -B || true
-
-COPY src src
-RUN ./mvnw clean package -DskipTests
-
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
-
-COPY --from=builder /app/target/*.jar app.jar
-
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY --from=build --chown=app:app /workspace/target/catalog-service-*.jar app.jar
+USER app
+EXPOSE 8083
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

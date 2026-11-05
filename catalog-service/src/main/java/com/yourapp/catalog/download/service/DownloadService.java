@@ -11,6 +11,8 @@ import com.yourapp.catalog.outbox.entity.OutboxEventEntity;
 import com.yourapp.catalog.outbox.repository.OutboxEventRepository;
 import com.yourapp.catalog.version.entity.VersionEntity;
 import com.yourapp.catalog.version.repository.VersionRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class DownloadService {
     private final DownloadEventRepository downloadEventRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public DownloadResponse recordAndResolve(String versionId, String userId) {
@@ -51,6 +54,10 @@ public class DownloadService {
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Could not serialize download event for " + versionId, ex);
         }
+        Counter.builder("releasehub.download.events")
+                .description("Successfully recorded download events")
+                .register(meterRegistry)
+                .increment();
 
         DownloadResponse response = new DownloadResponse();
         response.setVersionId(versionId);

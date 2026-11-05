@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: ReleaseHub
+    orgId: 1
+    folder: ReleaseHub
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

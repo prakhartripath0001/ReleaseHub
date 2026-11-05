@@ -11,6 +11,7 @@ import com.yourapp.catalog.software.entity.SoftwareEntity;
 import com.yourapp.catalog.download.service.DownloadService;
 import com.yourapp.catalog.version.entity.VersionEntity;
 import com.yourapp.catalog.version.repository.VersionRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,9 @@ class DownloadServiceTest {
 
     @Mock
     private ObjectMapper objectMapper;
+
+    @Mock
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private DownloadService service;

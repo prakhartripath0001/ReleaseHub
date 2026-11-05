@@ -9,6 +9,11 @@ services:
       - MYSQL_DATABASE=releasehub
     volumes:
       - releasehub_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prelease@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
@@ -22,6 +27,11 @@ services:
       - "9200:9200"
     volumes:
       - releasehub_es:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   kafka:
     image: apache/kafka:3.9.0
@@ -44,8 +54,165 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
       - releasehub_kafka:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  catalog-service:
+    build:
+      context: ../catalog-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: releasehub
+      DB_USERNAME: root
+      DB_PASSWORD: release@123
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SEARCH_SERVICE_URL: http://search-service:8084
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      search-service:
+        condition: service_started
+    ports:
+      - "8083:8083"
+
+  search-service:
+    build:
+      context: ../search-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: releasehub
+      DB_USERNAME: root
+      DB_PASSWORD: release@123
+      ELASTICSEARCH_URI: http://elasticsearch:9200
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+
+  feedback-service:
+    build:
+      context: ../feedback-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: releasehub
+      DB_USERNAME: root
+      DB_PASSWORD: release@123
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+
+  analytics-service:
+    build:
+      context: ../analytics-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: releasehub
+      DB_USERNAME: root
+      DB_PASSWORD: release@123
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8086:8086"
+
+  kong:
+    image: kong:3.9
+    container_name: releasehub-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: ${KONG_DECLARATIVE_CONFIG:-/kong/kong.yml}
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_LISTEN: "off"
+      KONG_PLUGINS: bundled
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ../gateway:/kong:ro
+    depends_on:
+      - catalog-service
+      - search-service
+      - feedback-service
+      - analytics-service
+    ports:
+      - "8000:8000"
+      - "127.0.0.1:8001:8001"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: releasehub-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - releasehub_prometheus:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: releasehub-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - releasehub_grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    ports:
+      - "3000:3000"
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: releasehub-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: releasehub-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.8.0
+    container_name: releasehub-kafka-exporter
+    command: --kafka.server=kafka:29092
+    depends_on:
+      - kafka
+    ports:
+      - "9308:9308"
 
 volumes:
   releasehub_db:
   releasehub_es:
   releasehub_kafka:
+  releasehub_prometheus:
+  releasehub_grafana:

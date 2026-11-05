@@ -131,45 +131,52 @@ analytics-service/src/main/java/com/analytics_service/
 - **JDK 21** or higher
 - **Docker** and **Docker Compose**
 
-### 2. Start Infrastructure (MySQL 8, Elasticsearch 8, and Kafka)
-From the repository root:
+### 2. Start the complete stack
+From the repository root, build and start MySQL, Elasticsearch, Kafka, all four services, Kong, and the monitoring stack:
 ```bash
-cd infra
-docker compose up -d
+docker compose -f infra/docker-compose.yml up --build -d
 ```
-This starts MySQL, Elasticsearch, and Kafka:
-- **MySQL port:** `3307` on the host
-- **Database:** `releasehub`
-- **User:** `root`
-- **Password:** `release@123`
-- **Elasticsearch port:** `9200`
-- **Kafka port:** `9092`
-- **Volumes:** `releasehub_db`, `releasehub_es`, and `releasehub_kafka` (Docker-managed named volumes)
+Catalog applies the Flyway migrations and provisions Kafka topics during startup. The services are available directly for manual tests on ports `8083`–`8086`; Kong is available on port `8000`. Infrastructure ports are MySQL `3307`, Elasticsearch `9200`, Kafka `9092`, Prometheus `9090`, Grafana `3000`, Loki `3100`, and Kafka Exporter `9308`.
 
-### 3. Run Services
-Start the catalog service first so it applies Flyway migrations V1-V3 and provisions Kafka topics. Run each service in a separate terminal from the repository root:
+Check startup with `docker compose -f infra/docker-compose.yml ps` and service logs with `docker compose -f infra/docker-compose.yml logs -f catalog-service`.
+
+### 3. Run all API tests
+After the containers report healthy/running:
 ```bash
-cd catalog-service
-./mvnw spring-boot:run
+./api-tests/run-tests.sh all
 ```
-Catalog API: `http://localhost:8083`. Catalog owns the shared MySQL Flyway history; other services validate/read the schema but do not run migrations.
+The script tests the catalog, search, feedback/analytics, version, download, and role/error APIs against the direct service ports. To run one suite, replace `all` with `software`, `search`, `feedback`, `versions`, `downloads`, or `auth`. See [`docs/api-testing.md`](docs/api-testing.md) for the suite data/setup and request details.
 
+### 4. Configure local gateway JWT
+Kong is configured DB-less, so its public-key credential must be part of its declarative configuration. Generate a local RS256 key pair, render the local Kong config, and restart Kong with that config:
 ```bash
-cd search-service
-./mvnw spring-boot:run
+./gateway/generate-local-jwt-key.sh
+./gateway/register-local-jwt.sh
+KONG_DECLARATIVE_CONFIG=/kong/keys/kong.local.yml docker compose -f infra/docker-compose.yml up -d --force-recreate kong
+TOKEN="$(./gateway/create-local-token.sh)"
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/search?q=release
 ```
+The private key is ignored by Git. Direct ports `8083`–`8086` remain available for the API test scripts; external clients should use Kong. Do not use the example development credentials or expose Kong's Admin API outside localhost.
 
+### 5. Observability
+- Grafana: `http://localhost:3000` (local development login: `admin` / `admin`)
+- Prometheus: `http://localhost:9090`
+- Springdoc UI: `http://localhost:8083/swagger-ui/index.html` (also available on the other service ports)
+- Metrics: `http://localhost:8083/actuator/prometheus` (change the port for the other services)
+
+The provisioned Grafana dashboard is named **ReleaseHub Overview**. Promtail sends container logs to Loki; use the Grafana Loki data source to query `{service="catalog-service"}` or search for a `correlationId` field.
+
+### 6. Kubernetes deployment
+The manifests deploy the four services and Kong. MySQL, Elasticsearch, and Kafka are external prerequisites; update the `releasehub-config` ConfigMap endpoints for your cluster and ensure the GHCR images are accessible. Create the namespace and credential Secret before applying the remaining manifests:
 ```bash
-cd feedback-service
-./mvnw spring-boot:run
+kubectl apply -f infra/k8s/00-namespace.yaml
+kubectl -n releasehub create secret generic releasehub-secrets \
+  --from-literal=DB_PASSWORD='<mysql-password>'
+kubectl apply -f infra/k8s/10-services.yaml
+kubectl apply -f infra/k8s/20-gateway.yaml
+kubectl apply -f infra/k8s/30-autoscaling.yaml
 ```
-
-```bash
-cd analytics-service
-./mvnw spring-boot:run
-```
-
-The Search, Feedback, and Analytics APIs listen on ports `8084`, `8085`, and `8086`. Search creates its initial `software_v1` index and alias on startup. Feedback and download writes commit outbox records with their MySQL transactions; scheduled relays publish them to Kafka, and Analytics builds idempotent aggregates. Catalog service owns Flyway migrations for the shared MySQL database; the feedback and analytics services do not maintain a competing Flyway history.
+Install the Kong Ingress Controller and Kubernetes Metrics Server in the cluster first. Add the JWT consumer and its public key to the Kong declarative configuration before relying on authenticated gateway traffic; the local key scripts are for Compose development only.
 
 ---
 
