@@ -9,19 +9,19 @@ services:
         paths: [/api/catalog]
         strip_path: true
   - name: search
-    url: http://search-service:8084
+    url: http://search-service:8084/search
     routes:
       - name: search-route
         paths: [/api/search]
         strip_path: true
   - name: feedback
-    url: http://feedback-service:8085
+    url: http://feedback-service:8085/feedback
     routes:
       - name: feedback-route
         paths: [/api/feedback]
         strip_path: true
   - name: reports
-    url: http://analytics-service:8086
+    url: http://analytics-service:8086/reports
     routes:
       - name: reports-route
         paths: [/api/reports]

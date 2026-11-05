@@ -78,6 +78,8 @@ kind: Service
 metadata:
   name: search-service
   namespace: releasehub
+  annotations:
+    konghq.com/path: /search
 spec:
   selector: { app: search-service }
   ports: [{ port: 8084, targetPort: 8084 }]
@@ -120,6 +122,8 @@ kind: Service
 metadata:
   name: feedback-service
   namespace: releasehub
+  annotations:
+    konghq.com/path: /feedback
 spec:
   selector: { app: feedback-service }
   ports: [{ port: 8085, targetPort: 8085 }]
@@ -162,6 +166,8 @@ kind: Service
 metadata:
   name: analytics-service
   namespace: releasehub
+  annotations:
+    konghq.com/path: /reports
 spec:
   selector: { app: analytics-service }
   ports: [{ port: 8086, targetPort: 8086 }]
