@@ -33,6 +33,7 @@ build.log
 /volume-data/
 /data/
 *.sql
+!**/src/main/resources/db/migration/*.sql
 *.sqlite
 *.mv.db
 *.h2.db
