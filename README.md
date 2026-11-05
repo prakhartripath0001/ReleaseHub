@@ -147,7 +147,16 @@ After the containers report healthy/running:
 ```
 The script tests the catalog, search, feedback/analytics, version, download, and role/error APIs against the direct service ports. To run one suite, replace `all` with `software`, `search`, `feedback`, `versions`, `downloads`, or `auth`. See [`docs/api-testing.md`](docs/api-testing.md) for the suite data/setup and request details.
 
-### 4. Configure local gateway JWT
+### 4. Start the demo UI
+With the backend stack running, start the React client in another terminal:
+```bash
+cd client
+npm install
+npm run dev
+```
+Open `http://localhost:5173`. Vite proxies the UI's `/api/*` requests directly to the four local services, so no browser CORS setup is needed. The UI includes software search and facets, catalog CRUD, version publishing and deletion, download event recording, feedback submission/listing, analytics reports, and search reindexing. Use the connection settings in the sidebar to provide a JWT and point the UI at Kong instead.
+
+### 5. Configure local gateway JWT
 Kong is configured DB-less, so its public-key credential must be part of its declarative configuration. Generate a local RS256 key pair, render the local Kong config, and restart Kong with that config:
 ```bash
 ./gateway/generate-local-jwt-key.sh
@@ -158,7 +167,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/search?q=releas
 ```
 The private key is ignored by Git. Direct ports `8083`–`8086` remain available for the API test scripts; external clients should use Kong. Do not use the example development credentials or expose Kong's Admin API outside localhost.
 
-### 5. Observability
+### 6. Observability
 - Grafana: `http://localhost:3000` (local development login: `admin` / `admin`)
 - Prometheus: `http://localhost:9090`
 - Springdoc UI: `http://localhost:8083/swagger-ui/index.html` (also available on the other service ports)
@@ -166,7 +175,7 @@ The private key is ignored by Git. Direct ports `8083`–`8086` remain available
 
 The provisioned Grafana dashboard is named **ReleaseHub Overview**. Promtail sends container logs to Loki; use the Grafana Loki data source to query `{service="catalog-service"}` or search for a `correlationId` field.
 
-### 6. Kubernetes deployment
+### 7. Kubernetes deployment
 The manifests deploy the four services and Kong. MySQL, Elasticsearch, and Kafka are external prerequisites; update the `releasehub-config` ConfigMap endpoints for your cluster and ensure the GHCR images are accessible. Create the namespace and credential Secret before applying the remaining manifests:
 ```bash
 kubectl apply -f infra/k8s/00-namespace.yaml
