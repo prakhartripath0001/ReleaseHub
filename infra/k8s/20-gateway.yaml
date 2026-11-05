@@ -22,10 +22,12 @@ spec:
             - name: KONG_PROXY_LISTEN
               value: 0.0.0.0:8000
             - name: KONG_ADMIN_LISTEN
-              value: "off"
+              value: 0.0.0.0:8001
             - name: KONG_PLUGINS
               value: bundled
-          ports: [{ containerPort: 8000 }]
+          ports:
+            - { name: proxy, containerPort: 8000 }
+            - { name: admin, containerPort: 8001 }
           volumeMounts:
             - name: kong-config
               mountPath: /kong
@@ -49,9 +51,19 @@ metadata:
   name: kong
   namespace: releasehub
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector: { app: kong }
   ports: [{ name: proxy, port: 8000, targetPort: 8000 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-admin
+  namespace: releasehub
+spec:
+  type: ClusterIP
+  selector: { app: kong }
+  ports: [{ name: admin, port: 8001, targetPort: 8001 }]
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
