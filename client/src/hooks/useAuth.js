@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const initialSettings = {
   origin: localStorage.getItem('releasehub.apiOrigin') ?? '',
-  token: localStorage.getItem('releasehub.authToken') ?? '',
+  token: sessionStorage.getItem('releasehub.authToken') ?? '',
   role: localStorage.getItem('releasehub.role') ?? 'PUBLISHER',
   userId: localStorage.getItem('releasehub.userId') ?? '',
 }
@@ -12,7 +12,8 @@ export function useAuth() {
 
   useEffect(() => {
     localStorage.setItem('releasehub.apiOrigin', settings.origin)
-    localStorage.setItem('releasehub.authToken', settings.token)
+    if (settings.token) sessionStorage.setItem('releasehub.authToken', settings.token)
+    else sessionStorage.removeItem('releasehub.authToken')
     localStorage.setItem('releasehub.role', settings.role)
     localStorage.setItem('releasehub.userId', settings.userId)
   }, [settings])

@@ -11,6 +11,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/catalog/, ''),
       },
+      '/api/search/admin': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/search/, ''),
+      },
       '/api/search': {
         target: 'http://localhost:8084',
         changeOrigin: true,

@@ -14,6 +14,12 @@ services:
       - name: search-route
         paths: [/api/search]
         strip_path: true
+  - name: search-admin
+    url: http://search-service:8084/admin/reindex
+    routes:
+      - name: search-reindex-route
+        paths: [/api/search/admin/reindex]
+        strip_path: true
   - name: feedback
     url: http://feedback-service:8085/feedback
     routes:

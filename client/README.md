@@ -1,16 +1,41 @@
-# React + Vite
+# ReleaseHub demo client
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A minimal React/Vite UI for exercising the ReleaseHub catalog, search, feedback,
+analytics, and publisher APIs.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Start the backend stack from the repository root, then run:
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Open `http://localhost:5173`. Vite proxies `/api/catalog`, `/api/search`,
+`/api/feedback`, and `/api/reports` to the local services on ports 8083–8086.
+Use **API settings** in the sidebar to configure a gateway URL, bearer token,
+publisher/admin role, or user ID.
 
-## Expanding the Oxlint configuration
+## Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- Discover: fuzzy search, category/OS filters, and facets.
+- Catalog: browse products, inspect releases, download, and manage entries.
+- Publisher studio: create products, publish releases, and rebuild the search index.
+- Feedback: submit ratings and comments, then browse reviews.
+- Analytics: view download, rating, and feedback totals by product.
+
+## Project layout
+
+```text
+src/
+├── assets/                 # Global styles
+├── components/             # Shared navigation and API settings
+├── config/                 # Central API client
+├── features/               # Catalog, search, publisher, feedback, and reports
+├── hooks/                  # Shared identity/API settings hook
+└── routes/                 # Feature-page selection
+```
+
+Run `npm run build` to create the production bundle and `npm run lint` to check
+the client source.
