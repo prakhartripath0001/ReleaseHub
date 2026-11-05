@@ -176,7 +176,7 @@ kubectl apply -f infra/k8s/10-services.yaml
 kubectl apply -f infra/k8s/20-gateway.yaml
 kubectl apply -f infra/k8s/30-autoscaling.yaml
 ```
-Install the Kong Ingress Controller and Kubernetes Metrics Server in the cluster first. Add the JWT consumer and its public key to the Kong declarative configuration before relying on authenticated gateway traffic; the local key scripts are for Compose development only.
+Install the Kong Ingress Controller and Kubernetes Metrics Server first, and configure the controller to use the internal Admin API at `http://kong-admin.releasehub.svc.cluster.local:8001`. Add the JWT consumer and its public key to the Kong declarative configuration before relying on authenticated gateway traffic; the local key scripts are for Compose development only. No private key or production password belongs in the committed manifests.
 
 ---
 

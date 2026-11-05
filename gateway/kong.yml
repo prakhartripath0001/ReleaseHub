@@ -40,7 +40,7 @@ plugins:
       hide_client_headers: false
   - name: cors
     config:
-      origins: [http://localhost:3000, http://127.0.0.1:3000]
+      origins: ["http://localhost:3000", "http://127.0.0.1:3000"]
       methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
       headers: [Accept, Authorization, Content-Type, X-Correlation-ID, X-Role, X-User-Role, X-User-Id]
       exposed_headers: [X-Correlation-ID, X-RateLimit-Limit-Minute, X-RateLimit-Remaining-Minute]

@@ -1,18 +1,30 @@
-# ReleaseHub — Catalog Service API Testing Guide
+# ReleaseHub API Testing Guide
 
-This document provides a complete, step-by-step manual testing suite for the Catalog Service. All commands use `curl` and can be run directly in your terminal.
+This document provides manual `curl` examples for the Catalog, search, feedback, analytics, versions, and downloads APIs. The executable suites under `api-tests/` cover the same flows.
 
 ---
 
 ## Prerequisites & Setup
 
-Set your base URL variable in your terminal session before starting:
+Start the full local stack from the repository root:
+
+```bash
+docker compose -f infra/docker-compose.yml up --build -d
+```
+
+Wait until the four Spring services report healthy, then run all API suites:
+
+```bash
+./api-tests/run-tests.sh all
+```
+
+The test runner targets the direct service ports (`8083`–`8086`). Manual gateway requests use Kong on `http://localhost:8000` and require a configured JWT; see the root README for local key setup.
+
+For individual `curl` examples in this guide, the catalog base URL is:
 
 ```bash
 BASE_URL="http://localhost:8083"
 ```
-
-*(Note: Change port to `8080` if running on the default port).*
 
 ---
 
