@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,7 +45,8 @@ class AnalyticsEventProcessorTest {
         String feedbackId = UUID.randomUUID().toString();
         String softwareId = UUID.randomUUID().toString();
         String payload = objectMapper.writeValueAsString(
-                new FeedbackSubmittedEvent(feedbackId, UUID.randomUUID().toString(), softwareId, UUID.randomUUID().toString(), 4));
+                new FeedbackSubmittedEvent(feedbackId, UUID.randomUUID().toString(), softwareId,
+                        UUID.randomUUID().toString(), 4, "Great", LocalDateTime.now()));
         when(jdbcTemplate.update(REGISTER_EVENT_SQL, feedbackId, "feedback.submitted")).thenReturn(1);
 
         processor.processFeedback(payload);
@@ -58,7 +60,7 @@ class AnalyticsEventProcessorTest {
         String feedbackId = UUID.randomUUID().toString();
         String payload = objectMapper.writeValueAsString(
                 new FeedbackSubmittedEvent(feedbackId, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
-                        UUID.randomUUID().toString(), 4));
+                        UUID.randomUUID().toString(), 4, null, LocalDateTime.now()));
         when(jdbcTemplate.update(REGISTER_EVENT_SQL, feedbackId, "feedback.submitted")).thenReturn(0);
 
         processor.processFeedback(payload);

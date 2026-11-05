@@ -13,7 +13,7 @@ ReleaseHub mirrors a real-world software downloads and versioning hub: publisher
 | **Backend** | Java 21, Spring Boot 4.x, Spring Data JPA, Hibernate, MapStruct |
 | **Database & Migrations** | **MySQL 8**, Flyway |
 | **Search (Phase 2)** | Elasticsearch 8, Elasticsearch Java API Client |
-| **Messaging (Phase 3)** | Apache Kafka (Transactional Outbox Pattern) |
+| **Messaging (Phase 3)** | Apache Kafka, transactional outbox, dead-letter topics |
 | **API Gateway (Phase 4)** | Kong Gateway |
 | **Testing** | JUnit 5, Mockito, Testcontainers (MySQL, Elasticsearch), JaCoCo |
 | **Observability (Phase 5)**| Spring Boot Actuator, Micrometer, Prometheus, Grafana |
@@ -45,7 +45,14 @@ ReleaseHub mirrors a real-world software downloads and versioning hub: publisher
          ▼                   ▼                   ▼
     ┌─────────┐         ┌──────────────┐    ┌─────────┐
     │ MySQL 8 │         │Elasticsearch │    │  Kafka  │
-    └─────────┘         └──────────────┘    └─────────┘
+    └────┬────┘         └──────────────┘    └────┬────┘
+         │                                        │
+         └──────────────┐           ┌────────────┘
+                        ▼           ▼
+                 ┌────────────┐ ┌───────────────┐
+                 │ Feedback   │ │ Analytics      │
+                 │ Service    │ │ Service        │
+                 └────────────┘ └───────────────┘
 ```
 
 ## Catalog Service Package Structure
@@ -108,7 +115,7 @@ search-service/src/main/java/com/search_service/
 - **JDK 21** or higher
 - **Docker** and **Docker Compose**
 
-### 2. Start Infrastructure (MySQL 8 and Elasticsearch 8)
+### 2. Start Infrastructure (MySQL 8, Elasticsearch 8, and Kafka)
 From the repository root:
 ```bash
 cd infra
@@ -120,22 +127,33 @@ This starts MySQL and Elasticsearch:
 - **User:** `root`
 - **Password:** `release@123`
 - **Elasticsearch port:** `9200`
-- **Volumes:** `releasehub_db` and `releasehub_es` (Docker-managed named volumes)
+- **Kafka port:** `9092`
+- **Volumes:** `releasehub_db`, `releasehub_es`, and `releasehub_kafka` (Docker-managed named volumes)
 
-### 3. Run Catalog and Search Services
-In separate terminals, from the repository root:
+### 3. Run Services
+Start the catalog service first so it applies Flyway migrations V1-V3 and provisions Kafka topics. Run each service in a separate terminal from the repository root:
 ```bash
 cd catalog-service
 ./mvnw spring-boot:run
 ```
-The catalog API listens on `http://localhost:8083`; Flyway runs the database migrations on startup. Then start the search service:
+Catalog API: `http://localhost:8083`. Catalog owns the shared MySQL Flyway history; other services validate/read the schema but do not run migrations.
 
 ```bash
 cd search-service
 ./mvnw spring-boot:run
 ```
 
-The search API listens on `http://localhost:8084`. It creates the initial `software_v1` index and the `software` alias on startup. Catalog software and version changes are sent to the search service after the database transaction commits.
+```bash
+cd feedback-service
+./mvnw spring-boot:run
+```
+
+```bash
+cd analytics-service
+./mvnw spring-boot:run
+```
+
+The Search, Feedback, and Analytics APIs listen on ports `8084`, `8085`, and `8086`. Search creates its initial `software_v1` index and alias on startup. Feedback and download writes commit outbox records with their MySQL transactions; scheduled relays publish them to Kafka, and Analytics builds idempotent aggregates.
 
 ---
 
@@ -228,6 +246,25 @@ The search API listens on `http://localhost:8084`. It creates the initial `softw
   ```
   Reindexing bulk-loads the catalog into a new versioned index, then atomically switches the `software` alias.
 
+### Feedback and Analytics Endpoints
+
+- **Submit feedback** *(one feedback per user per version; rating 1-5)*
+  ```bash
+  curl -i -X POST http://localhost:8085/feedback \
+    -H "Content-Type: application/json" \
+    -d '{"versionId":"<version-id>","userId":"<user-id>","rating":5,"comment":"Excellent release"}'
+  ```
+
+- **List software feedback**
+  ```bash
+  curl http://localhost:8085/feedback/<software-id>
+  ```
+
+- **Get analytics report** *(asynchronous; allow time for Kafka consumption)*
+  ```bash
+  curl http://localhost:8086/reports/<software-id>
+  ```
+
 ---
 
 ## Running Tests
@@ -248,16 +285,18 @@ A modular bash test suite is located in the [`api-tests/`](api-tests/) directory
 # Or run individual modules:
 ./api-tests/run-tests.sh software
 ./api-tests/run-tests.sh search
+./api-tests/run-tests.sh feedback
 ./api-tests/run-tests.sh versions
 ./api-tests/run-tests.sh downloads
 ./api-tests/run-tests.sh auth
 ```
 
-The search suite requires both services and Elasticsearch to be running. Override the defaults with `BASE_URL` (catalog, default `http://localhost:8083`) and `SEARCH_BASE_URL` (search, default `http://localhost:8084`).
+The search suite requires the catalog and search services plus Elasticsearch. The feedback suite requires the catalog, feedback, and analytics services plus Kafka. Override defaults with `BASE_URL`, `SEARCH_BASE_URL`, `FEEDBACK_BASE_URL`, and `ANALYTICS_BASE_URL`.
 
 Includes:
 - Unit tests for all services with Mockito (`SoftwareServiceTest`, `VersionServiceTest`, `DownloadServiceTest`)
 - Search integration tests with Testcontainers for MySQL and Elasticsearch
+- Feedback/outbox and analytics unit tests; API checks in `api-tests/tests/feedback.sh`
 - JaCoCo test coverage enforcement (configured for >= 80% line coverage)
 
 ---
@@ -267,6 +306,6 @@ Includes:
 - [x] **Phase 0:** Project bootstrap, Docker Compose, MySQL 8 setup
 - [x] **Phase 1:** Catalog Service CRUD, modular architecture, validation, MySQL Flyway migrations
 - [x] **Phase 2:** Search service with Elasticsearch (fuzzy search, facets, alias swap)
-- [ ] **Phase 3:** Feedback API, Kafka integration, Transactional Outbox pattern, Analytics consumer
+- [x] **Phase 3:** Feedback API, Kafka integration, Transactional Outbox pattern, Analytics consumer
 - [ ] **Phase 4:** Kong API Gateway (routing, JWT authentication, rate limiting) & Kubernetes deployment
 - [ ] **Phase 5:** Observability (Prometheus, Grafana, Loki), alerts, and k6 load testing

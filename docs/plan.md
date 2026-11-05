@@ -224,60 +224,60 @@ Implement the feedback API with the transactional outbox pattern, analytics cons
 
 ### Tasks
 
-**Database schema (feedback service)**
+**Database schema (feedback and analytics tables)**
 
-- [ ] Flyway migration `V2__feedback.sql`:
+- [x] MySQL Flyway migrations for feedback/outbox and analytics idempotency tables (`V2__feedback.sql`, `V3__analytics.sql`). The catalog service owns the single Flyway history for the shared MySQL database.
   ```sql
   CREATE TABLE feedback (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    version_id  UUID NOT NULL,
-    user_id     UUID NOT NULL,
+    id          VARCHAR(36) PRIMARY KEY,
+    version_id  VARCHAR(36) NOT NULL,
+    user_id     VARCHAR(36) NOT NULL,
     rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment     TEXT,
-    created_at  TIMESTAMPTZ DEFAULT now(),
+    created_at  DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
     UNIQUE (user_id, version_id)
   );
 
   CREATE TABLE outbox (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    aggregate_id  UUID NOT NULL,
-    event_type    TEXT NOT NULL,
-    payload       JSONB NOT NULL,
-    created_at    TIMESTAMPTZ DEFAULT now(),
-    published_at  TIMESTAMPTZ
+    id            VARCHAR(36) PRIMARY KEY,
+    aggregate_id  VARCHAR(36) NOT NULL,
+    event_type    VARCHAR(100) NOT NULL,
+    payload       JSON NOT NULL,
+    created_at    DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
+    published_at  DATETIME(6)
   );
   ```
 
 **Feedback API**
 
-- [ ] `POST /feedback` — validate, save feedback + outbox record in a single `@Transactional` block.
-- [ ] `GET /feedback/{softwareId}` — list feedback for a software entry.
+- [x] `POST /feedback` — validate, save feedback + outbox record in a single `@Transactional` block.
+- [x] `GET /feedback/{softwareId}` — list feedback for a software entry.
 
 **Outbox relay**
 
-- [ ] `@Scheduled` job runs every 500 ms, reads unpublished outbox rows, publishes to Kafka, marks as published.
-- [ ] On publish failure, leave the row for the next cycle (at-least-once guarantee).
+- [x] `@Scheduled` job runs every 500 ms, locks pending outbox rows, publishes to Kafka, marks as published.
+- [x] On publish failure, the transaction rolls back and the row remains pending for the next cycle (at-least-once guarantee).
 
 **Kafka topics**
 
-- [ ] `feedback.submitted` (3 partitions, replication factor 1 for local).
-- [ ] `download.completed` — also published from the catalog service download endpoint.
-- [ ] `feedback.submitted.dlq` and `download.completed.dlq`.
+- [x] `feedback.submitted` (3 partitions, replication factor 1 for local).
+- [x] `download.completed` — also published from the catalog service download endpoint.
+- [x] `feedback.submitted.dlq` and `download.completed.dlq`.
 
 **Analytics service**
 
-- [ ] `FeedbackConsumer` — `@KafkaListener` on `feedback.submitted`:
+- [x] `FeedbackConsumer` — `@KafkaListener` on `feedback.submitted`:
   - Upsert `report_aggregate` row (downloads, avg_rating, feedback_count).
   - Idempotent: keyed on `feedbackId`; use a `processed_event` table or check before inserting.
   - On repeated failure (3 retries), publish to DLQ.
-- [ ] `DownloadConsumer` — same pattern for `download.completed`.
-- [ ] `GET /reports/{softwareId}` — returns aggregated data.
+- [x] `DownloadConsumer` — same pattern for `download.completed`.
+- [x] `GET /reports/{softwareId}` — returns aggregated data.
 
 **Testing**
 
 - [ ] Integration test: submit feedback via HTTP, assert outbox row created, assert Kafka message received (use embedded Kafka or Testcontainers Kafka).
-- [ ] Consumer test: publish a message to the topic, assert aggregate is updated.
-- [ ] Failure test: publish a malformed message, assert it lands in the DLQ after retries.
+- [x] Unit tests verify event processing, duplicate suppression, and malformed-payload failure.
+- [ ] Integration test with Kafka and MySQL verifies broker delivery, aggregation, and DLQ routing.
 
 **Definition of done**
 

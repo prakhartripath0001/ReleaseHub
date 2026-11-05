@@ -45,7 +45,7 @@ class FeedbackServiceTest {
                 feedbackRepository,
                 outboxRepository,
                 versionLookupRepository,
-                new ObjectMapper());
+                new ObjectMapper().findAndRegisterModules());
     }
 
     @Test
