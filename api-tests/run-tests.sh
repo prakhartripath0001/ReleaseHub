@@ -5,6 +5,7 @@
 # Usage:
 #   ./run-tests.sh              # Runs all test suites
 #   ./run-tests.sh software     # Runs only the software suite
+#   ./run-tests.sh search       # Runs only the search suite
 #   ./run-tests.sh versions     # Runs only the versions suite
 #   ./run-tests.sh downloads    # Runs only the downloads suite
 #   ./run-tests.sh auth         # Runs only the auth & errors suite
@@ -27,7 +28,7 @@ echo -e "${BOLD}${BLUE}Checking connectivity to $BASE_URL...${NC}"
 if ! curl -s --max-time 3 "$BASE_URL/actuator/health" >/dev/null 2>&1 && ! curl -s --max-time 3 "$BASE_URL/software" >/dev/null 2>&1; then
     echo -e "${RED}${BOLD}Error: Cannot connect to Catalog Service at $BASE_URL${NC}"
     echo -e "Make sure the Spring Boot service is started: ${YELLOW}mvn spring-boot:run${NC}"
-    echo -e "Or specify a custom URL: ${YELLOW}BASE_URL=\"http://localhost:8080\" ./run-tests.sh${NC}"
+    echo -e "Or specify a custom URL: ${YELLOW}BASE_URL=\"http://localhost:8083\" ./run-tests.sh${NC}"
     exit 1
 fi
 echo -e "${GREEN}✓ Connected to $BASE_URL successfully!${NC}"
@@ -63,6 +64,9 @@ case "$TARGET_SUITE" in
     software|software.sh)
         run_suite "software"
         ;;
+    search|search.sh)
+        run_suite "search"
+        ;;
     versions|version|versions.sh)
         run_suite "versions"
         ;;
@@ -77,13 +81,14 @@ case "$TARGET_SUITE" in
         echo -e "${BOLD} Running All ReleaseHub API Test Suites${NC}"
         echo "============================================================"
         run_suite "software"
+        run_suite "search"
         run_suite "versions"
         run_suite "downloads"
         run_suite "auth"
         ;;
     *)
         echo -e "${RED}Unknown suite: $TARGET_SUITE${NC}"
-        echo "Available suites: software, versions, downloads, auth, all"
+        echo "Available suites: software, search, versions, downloads, auth, all"
         exit 1
         ;;
 esac
@@ -103,4 +108,3 @@ else
     echo -e "${RED}${BOLD} $FAILED_SUITES OF $TOTAL_SUITES SUITE(S) FAILED!${NC}"
     exit 1
 fi
-

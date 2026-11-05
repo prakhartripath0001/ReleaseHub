@@ -156,19 +156,19 @@ Index software and version metadata in Elasticsearch and expose a fuzzy, faceted
 
 ### Stack additions this phase
 
-- Spring Data Elasticsearch (or the REST High-Level Client / new Java API client)
+- Elasticsearch 8 Java API Client
 - Elasticsearch 8.x (already in Docker Compose)
 
 ### Tasks
 
 **Index design**
 
-- [ ] Define the `software` index mapping:
+- [x] Define the `software` index mapping:
   ```json
   {
     "mappings": {
       "properties": {
-        "name":        { "type": "text", "boost": 3 },
+        "name":        { "type": "text" },
         "description": { "type": "text" },
         "category":    { "type": "keyword" },
         "tags":        { "type": "keyword" },
@@ -177,30 +177,31 @@ Index software and version metadata in Elasticsearch and expose a fuzzy, faceted
     }
   }
   ```
-- [ ] Use index aliases (`software_v1` aliased to `software`) to allow zero-downtime reindex.
+- The name field is boosted at query time (`name^3`); Elasticsearch 8 no longer supports mapping-level field boosts.
+- [x] Use index aliases (`software_v1` aliased to `software`) to allow zero-downtime reindex.
 
 **Indexer**
 
-- [ ] `SearchIndexer` service:
+- [x] `SearchIndexer` service:
   - Triggered by an application event published from `SoftwareService` on create/update/delete.
   - Calls Elasticsearch to upsert or delete the document.
-- [ ] `ReindexJob`: reads all software from MySQL and bulk-indexes to a new index version, then atomically swaps the alias.
+- [x] `ReindexJob`: reads all software from MySQL and bulk-indexes to a new index version, then atomically swaps the alias.
 
 **Search endpoint**
 
-- [ ] `GET /search?q=&os=&category=&page=&size=`
+- [x] `GET /search?q=&os=&category=&page=&size=`
   - Multi-match query across `name` and `description` with `fuzziness: AUTO`.
   - Filter by `os` and `category` (term filters).
   - Aggregations for facets: `os` and `category` buckets returned alongside hits.
-- [ ] Response includes hits (with score) and facet counts.
+- [x] Response includes hits (with score) and facet counts.
 
 **Testing**
 
-- [ ] Integration tests with Testcontainers Elasticsearch:
+- [x] Integration tests with Testcontainers Elasticsearch:
   - Index a known set of documents.
   - Assert fuzzy match returns the correct document.
   - Assert facet counts are correct.
-- [ ] Test the alias-swap reindex path without downtime.
+- [x] Test the alias-swap reindex path without downtime.
 
 **Definition of done**
 
@@ -462,4 +463,3 @@ Phase 0 (infra up)
 ```
 
 Each phase has a clear entry point (previous phase done), concrete tasks, and a binary definition of done. If a phase runs over time, the stretch goals are the first thing to drop — not the tests or observability.
-

@@ -1,6 +1,6 @@
 # ReleaseHub
 
-> A modern software distribution, cataloging, and release analytics platform built with **Spring Boot** and **MySQL 8**.
+> A modern software distribution, cataloging, search, and release analytics platform built with **Spring Boot**, **MySQL 8**, and **Elasticsearch 8**.
 
 ReleaseHub mirrors a real-world software downloads and versioning hub: publishers upload and manage software releases, users discover and download specific versions, and feedback/download events drive real-time analytics.
 
@@ -12,10 +12,10 @@ ReleaseHub mirrors a real-world software downloads and versioning hub: publisher
 |---|---|
 | **Backend** | Java 21, Spring Boot 4.x, Spring Data JPA, Hibernate, MapStruct |
 | **Database & Migrations** | **MySQL 8**, Flyway |
-| **Search (Phase 2)** | Elasticsearch / OpenSearch |
+| **Search (Phase 2)** | Elasticsearch 8, Elasticsearch Java API Client |
 | **Messaging (Phase 3)** | Apache Kafka (Transactional Outbox Pattern) |
 | **API Gateway (Phase 4)** | Kong Gateway |
-| **Testing** | JUnit 5, Mockito, Testcontainers (MySQL), JaCoCo |
+| **Testing** | JUnit 5, Mockito, Testcontainers (MySQL, Elasticsearch), JaCoCo |
 | **Observability (Phase 5)**| Spring Boot Actuator, Micrometer, Prometheus, Grafana |
 | **Containerization** | Docker, Docker Compose, Kubernetes |
 
@@ -37,18 +37,16 @@ ReleaseHub mirrors a real-world software downloads and versioning hub: publisher
          │                   │                   │
          ▼                   ▼                   ▼
 ┌──────────────────┐┌──────────────────┐┌──────────────────┐
-│ Catalog Service  ││ Feedback Service ││ Analytics Service│
-│ (Software, Ver,  ││ (Outbox Pattern) ││ (Event Consumer) │
-│  Downloads)      ││                  ││                  │
+│ Catalog Service  ││  Search Service  ││ Feedback Service │
+│ (Software, Ver,  ││ (Fuzzy Search,   ││ (Outbox Pattern) │
+│  Downloads)      ││  Facets, Index)  ││                  │
 └────────┬─────────┘└────────┬─────────┘└────────┬─────────┘
          │                   │                   │
          ▼                   ▼                   ▼
-    ┌─────────┐         ┌─────────┐         ┌─────────┐
-    │ MySQL 8 │         │  Kafka  │         │Prometheus│
-    └─────────┘         └─────────┘         └─────────┘
+    ┌─────────┐         ┌──────────────┐    ┌─────────┐
+    │ MySQL 8 │         │Elasticsearch │    │  Kafka  │
+    └─────────┘         └──────────────┘    └─────────┘
 ```
-
----
 
 ## Catalog Service Package Structure
 
@@ -90,6 +88,18 @@ catalog-service/
 │       └── security/            # RoleCheckFilter (Publisher/Admin guard)
 ```
 
+The separate `search-service` uses the same feature-oriented approach:
+
+```
+search-service/src/main/java/com/search_service/
+├── catalog/      # Read-only MySQL catalog entities and repositories
+├── config/       # Elasticsearch client and index configuration
+├── index/        # Search document, mapping/index management, bootstrap
+├── indexer/      # Event-driven indexing and full reindex job
+├── search/       # Fuzzy query, facets, and response models
+└── web/          # Search, internal indexing, and reindex endpoints
+```
+
 ---
 
 ## Quick Start
@@ -98,25 +108,34 @@ catalog-service/
 - **JDK 21** or higher
 - **Docker** and **Docker Compose**
 
-### 2. Start Infrastructure (MySQL 8)
+### 2. Start Infrastructure (MySQL 8 and Elasticsearch 8)
 From the repository root:
 ```bash
 cd infra
 docker compose up -d
 ```
-This spins up the MySQL 8 container with:
-- **Port:** `3306`
+This starts MySQL and Elasticsearch:
+- **MySQL port:** `3307` on the host
 - **Database:** `releasehub`
 - **User:** `root`
 - **Password:** `release@123`
-- **Volume:** `releasehub_db` (Docker managed named volume)
+- **Elasticsearch port:** `9200`
+- **Volumes:** `releasehub_db` and `releasehub_es` (Docker-managed named volumes)
 
-### 3. Run Catalog Service
+### 3. Run Catalog and Search Services
+In separate terminals, from the repository root:
 ```bash
 cd catalog-service
 ./mvnw spring-boot:run
 ```
-Flyway will automatically execute database migrations (`V1__init.sql`) on startup.
+The catalog API listens on `http://localhost:8083`; Flyway runs the database migrations on startup. Then start the search service:
+
+```bash
+cd search-service
+./mvnw spring-boot:run
+```
+
+The search API listens on `http://localhost:8084`. It creates the initial `software_v1` index and the `software` alias on startup. Catalog software and version changes are sent to the search service after the database transaction commits.
 
 ---
 
@@ -128,7 +147,7 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 - **Create Software** *(Requires `X-Role: PUBLISHER` or `ADMIN`)*
   ```bash
-  curl -X POST http://localhost:8080/software \
+  curl -X POST http://localhost:8083/software \
     -H "Content-Type: application/json" \
     -H "X-Role: PUBLISHER" \
     -d '{
@@ -142,17 +161,17 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 - **List / Filter Software** *(Paginated)*
   ```bash
-  curl "http://localhost:8080/software?category=developer-tools&page=0&size=10"
+  curl "http://localhost:8083/software?category=developer-tools&page=0&size=10"
   ```
 
 - **Get Software by ID**
   ```bash
-  curl http://localhost:8080/software/{softwareId}
+  curl http://localhost:8083/software/{softwareId}
   ```
 
 - **Update Software** *(Requires `X-Role: PUBLISHER` or `ADMIN`)*
   ```bash
-  curl -X PUT http://localhost:8080/software/{softwareId} \
+  curl -X PUT http://localhost:8083/software/{softwareId} \
     -H "Content-Type: application/json" \
     -H "X-Role: PUBLISHER" \
     -d '{
@@ -163,7 +182,7 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 - **Delete Software** *(Requires `X-Role: PUBLISHER` or `ADMIN`)*
   ```bash
-  curl -X DELETE http://localhost:8080/software/{softwareId} \
+  curl -X DELETE http://localhost:8083/software/{softwareId} \
     -H "X-Role: ADMIN"
   ```
 
@@ -171,7 +190,7 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 - **Create New Version** *(Requires `X-Role: PUBLISHER` or `ADMIN`)*
   ```bash
-  curl -X POST http://localhost:8080/software/{softwareId}/versions \
+  curl -X POST http://localhost:8083/software/{softwareId}/versions \
     -H "Content-Type: application/json" \
     -H "X-Role: PUBLISHER" \
     -d '{
@@ -184,16 +203,30 @@ Flyway will automatically execute database migrations (`V1__init.sql`) on startu
 
 - **List Versions for Software** *(Sorted newest first)*
   ```bash
-  curl http://localhost:8080/software/{softwareId}/versions
+  curl http://localhost:8083/software/{softwareId}/versions
   ```
 
 ### Download Endpoints
 
 - **Download / Record Event**
   ```bash
-  curl http://localhost:8080/download/{versionId} \
+  curl http://localhost:8083/download/{versionId} \
     -H "X-User-Id: user-123"
   ```
+
+### Search Endpoints
+
+- **Fuzzy search with OS/category facets**
+  ```bash
+  curl "http://localhost:8084/search?q=Postman&os=LINUX&category=developer-tools&page=0&size=20"
+  ```
+  Search supports typo-tolerant matching across software names and descriptions, with name matches ranked higher. The response includes `hits`, `total`, pagination fields, and `facets.os` / `facets.category` buckets. `q`, `os`, and `category` are optional.
+
+- **Rebuild the search index**
+  ```bash
+  curl -X POST http://localhost:8084/admin/reindex
+  ```
+  Reindexing bulk-loads the catalog into a new versioned index, then atomically switches the `software` alias.
 
 ---
 
@@ -214,13 +247,17 @@ A modular bash test suite is located in the [`api-tests/`](api-tests/) directory
 
 # Or run individual modules:
 ./api-tests/run-tests.sh software
+./api-tests/run-tests.sh search
 ./api-tests/run-tests.sh versions
 ./api-tests/run-tests.sh downloads
 ./api-tests/run-tests.sh auth
 ```
 
+The search suite requires both services and Elasticsearch to be running. Override the defaults with `BASE_URL` (catalog, default `http://localhost:8083`) and `SEARCH_BASE_URL` (search, default `http://localhost:8084`).
+
 Includes:
 - Unit tests for all services with Mockito (`SoftwareServiceTest`, `VersionServiceTest`, `DownloadServiceTest`)
+- Search integration tests with Testcontainers for MySQL and Elasticsearch
 - JaCoCo test coverage enforcement (configured for >= 80% line coverage)
 
 ---
@@ -229,7 +266,7 @@ Includes:
 
 - [x] **Phase 0:** Project bootstrap, Docker Compose, MySQL 8 setup
 - [x] **Phase 1:** Catalog Service CRUD, modular architecture, validation, MySQL Flyway migrations
-- [ ] **Phase 2:** Search service with Elasticsearch (fuzzy search, facets, alias swap)
+- [x] **Phase 2:** Search service with Elasticsearch (fuzzy search, facets, alias swap)
 - [ ] **Phase 3:** Feedback API, Kafka integration, Transactional Outbox pattern, Analytics consumer
 - [ ] **Phase 4:** Kong API Gateway (routing, JWT authentication, rate limiting) & Kubernetes deployment
 - [ ] **Phase 5:** Observability (Prometheus, Grafana, Loki), alerts, and k6 load testing

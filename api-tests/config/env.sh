@@ -6,6 +6,7 @@
 
 # Target Host Configuration
 export BASE_URL="${BASE_URL:-http://localhost:8083}"
+export SEARCH_BASE_URL="${SEARCH_BASE_URL:-http://localhost:8084}"
 export REQUEST_TIMEOUT="${REQUEST_TIMEOUT:-10}"
 
 # Default Roles / Headers
@@ -68,6 +69,7 @@ http_request() {
     local endpoint="$2"
     local headers="${3:-}"
     local body="${4:-}"
+    local base_url="${5:-$BASE_URL}"
 
     local temp_file
     temp_file=$(mktemp)
@@ -76,7 +78,7 @@ http_request() {
     start_time=$(python3 -c 'import time; print(int(time.time() * 1000))' 2>/dev/null || echo 0)
 
     # Build curl arguments
-    local curl_cmd=(curl -s -S -w "\n%{http_code}" --max-time "$REQUEST_TIMEOUT" -X "$method" "$BASE_URL$endpoint")
+    local curl_cmd=(curl -s -S -w "\n%{http_code}" --max-time "$REQUEST_TIMEOUT" -X "$method" "$base_url$endpoint")
 
     if [ -n "$headers" ]; then
         # Parse space-delimited headers if array isn't provided
@@ -166,4 +168,3 @@ suite_summary() {
         return 1
     fi
 }
-
