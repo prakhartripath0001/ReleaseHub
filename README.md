@@ -55,7 +55,7 @@ ReleaseHub mirrors a real-world software downloads and versioning hub: publisher
                  └────────────┘ └───────────────┘
 ```
 
-## Catalog Service Package Structure
+## Service Package Structure
 
 `catalog-service` is organized using a **module-based (package-by-feature / vertical slice)** architecture:
 
@@ -107,6 +107,22 @@ search-service/src/main/java/com/search_service/
 └── web/          # Search, internal indexing, and reindex endpoints
 ```
 
+`feedback-service` and `analytics-service` follow feature-oriented packages as well:
+
+```
+feedback-service/src/main/java/com/releasehub/feedback/
+├── catalog/      # Read-only lookup of catalog versions in shared MySQL
+├── feedback/     # Feedback API, persistence, validation, and event model
+├── outbox/       # Transactional event storage and scheduled Kafka relay
+└── web/          # API error mapping
+
+analytics-service/src/main/java/com/analytics_service/
+├── config/       # Kafka topics and retry/DLQ handling
+├── consumer/     # Kafka listeners and idempotent event processing
+├── event/        # Consumed event contracts
+└── report/       # Aggregated report query API
+```
+
 ---
 
 ## Quick Start
@@ -121,7 +137,7 @@ From the repository root:
 cd infra
 docker compose up -d
 ```
-This starts MySQL and Elasticsearch:
+This starts MySQL, Elasticsearch, and Kafka:
 - **MySQL port:** `3307` on the host
 - **Database:** `releasehub`
 - **User:** `root`
@@ -153,7 +169,7 @@ cd analytics-service
 ./mvnw spring-boot:run
 ```
 
-The Search, Feedback, and Analytics APIs listen on ports `8084`, `8085`, and `8086`. Search creates its initial `software_v1` index and alias on startup. Feedback and download writes commit outbox records with their MySQL transactions; scheduled relays publish them to Kafka, and Analytics builds idempotent aggregates.
+The Search, Feedback, and Analytics APIs listen on ports `8084`, `8085`, and `8086`. Search creates its initial `software_v1` index and alias on startup. Feedback and download writes commit outbox records with their MySQL transactions; scheduled relays publish them to Kafka, and Analytics builds idempotent aggregates. Catalog service owns Flyway migrations for the shared MySQL database; the feedback and analytics services do not maintain a competing Flyway history.
 
 ---
 
