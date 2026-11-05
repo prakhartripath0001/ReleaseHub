@@ -6,6 +6,7 @@
 #   ./run-tests.sh              # Runs all test suites
 #   ./run-tests.sh software     # Runs only the software suite
 #   ./run-tests.sh search       # Runs only the search suite
+#   ./run-tests.sh feedback     # Runs feedback and analytics suites
 #   ./run-tests.sh versions     # Runs only the versions suite
 #   ./run-tests.sh downloads    # Runs only the downloads suite
 #   ./run-tests.sh auth         # Runs only the auth & errors suite
@@ -67,6 +68,9 @@ case "$TARGET_SUITE" in
     search|search.sh)
         run_suite "search"
         ;;
+    feedback|feedback.sh)
+        run_suite "feedback"
+        ;;
     versions|version|versions.sh)
         run_suite "versions"
         ;;
@@ -82,13 +86,14 @@ case "$TARGET_SUITE" in
         echo "============================================================"
         run_suite "software"
         run_suite "search"
+        run_suite "feedback"
         run_suite "versions"
         run_suite "downloads"
         run_suite "auth"
         ;;
     *)
         echo -e "${RED}Unknown suite: $TARGET_SUITE${NC}"
-        echo "Available suites: software, search, versions, downloads, auth, all"
+        echo "Available suites: software, search, feedback, versions, downloads, auth, all"
         exit 1
         ;;
 esac

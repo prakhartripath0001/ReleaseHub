@@ -7,6 +7,8 @@
 # Target Host Configuration
 export BASE_URL="${BASE_URL:-http://localhost:8083}"
 export SEARCH_BASE_URL="${SEARCH_BASE_URL:-http://localhost:8084}"
+export FEEDBACK_BASE_URL="${FEEDBACK_BASE_URL:-http://localhost:8085}"
+export ANALYTICS_BASE_URL="${ANALYTICS_BASE_URL:-http://localhost:8086}"
 export REQUEST_TIMEOUT="${REQUEST_TIMEOUT:-10}"
 
 # Default Roles / Headers
