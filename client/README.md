@@ -3,6 +3,10 @@
 A minimal React/Vite UI for exercising the ReleaseHub catalog, search, feedback,
 analytics, and publisher APIs.
 
+## Screenshot
+
+![ReleaseHub demo client](./public/releasehub-demo.png)
+
 ## Run locally
 
 Start the backend stack from the repository root, then run:
