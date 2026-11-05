@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id":          { "type": "keyword" },
+      "name":        { "type": "text" },
+      "description": { "type": "text" },
+      "category":    { "type": "keyword" },
+      "tags":        { "type": "keyword" },
+      "os":          { "type": "keyword" }
+    }
+  }
+}

@@ -2,6 +2,8 @@ package com.yourapp.catalog.version.service;
 
 import com.yourapp.catalog.common.exception.ResourceNotFoundException;
 import com.yourapp.catalog.software.entity.SoftwareEntity;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent.Action;
 import com.yourapp.catalog.software.repository.SoftwareRepository;
 import com.yourapp.catalog.version.dto.request.CreateVersionRequest;
 import com.yourapp.catalog.version.dto.response.VersionResponse;
@@ -9,6 +11,7 @@ import com.yourapp.catalog.version.entity.VersionEntity;
 import com.yourapp.catalog.version.mapper.VersionMapper;
 import com.yourapp.catalog.version.repository.VersionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,7 @@ public class VersionService {
     private final VersionRepository versionRepository;
     private final SoftwareRepository softwareRepository;
     private final VersionMapper mapper;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public VersionResponse create(String softwareId, CreateVersionRequest request) {
@@ -29,7 +33,9 @@ public class VersionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Software not found: " + softwareId));
         VersionEntity entity = mapper.toEntity(request);
         entity.setSoftware(software);
-        return mapper.toResponse(versionRepository.save(entity));
+        VersionEntity saved = versionRepository.save(entity);
+        events.publishEvent(new SoftwareIndexEvent(softwareId, Action.UPSERT));
+        return mapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -46,8 +52,10 @@ public class VersionService {
 
     @Transactional
     public void delete(String id) {
-        getOrThrow(id);
-        versionRepository.deleteById(id);
+        VersionEntity entity = getOrThrow(id);
+        String softwareId = entity.getSoftware().getId();
+        versionRepository.delete(entity);
+        events.publishEvent(new SoftwareIndexEvent(softwareId, Action.UPSERT));
     }
 
     private VersionEntity getOrThrow(String id) {

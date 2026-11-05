@@ -11,5 +11,19 @@ services:
     volumes:
       - releasehub_db:/var/lib/mysql
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+    container_name: releasehub-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - releasehub_es:/usr/share/elasticsearch/data
+
 volumes:
   releasehub_db:
+  releasehub_es:

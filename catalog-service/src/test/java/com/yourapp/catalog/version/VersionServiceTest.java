@@ -2,6 +2,8 @@ package com.yourapp.catalog.version;
 
 import com.yourapp.catalog.common.exception.ResourceNotFoundException;
 import com.yourapp.catalog.software.entity.SoftwareEntity;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent.Action;
 import com.yourapp.catalog.software.repository.SoftwareRepository;
 import com.yourapp.catalog.version.dto.request.CreateVersionRequest;
 import com.yourapp.catalog.version.dto.response.VersionResponse;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
@@ -40,6 +43,9 @@ class VersionServiceTest {
 
     @Mock
     private VersionMapper mapper;
+
+    @Mock
+    private ApplicationEventPublisher events;
 
     @InjectMocks
     private VersionService service;
@@ -77,6 +83,7 @@ class VersionServiceTest {
         VersionResponse result = service.create(software.getId(), request);
 
         assertThat(result.getVersionNumber()).isEqualTo("1.0.0");
+        verify(events).publishEvent(new SoftwareIndexEvent(software.getId(), Action.UPSERT));
     }
 
     @Test
@@ -96,6 +103,16 @@ class VersionServiceTest {
         List<VersionResponse> result = service.findBySoftwareId(software.getId());
 
         assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void delete_shouldPublishUpsertForTheParentSoftware() {
+        when(versionRepository.findById(versionEntity.getId())).thenReturn(Optional.of(versionEntity));
+
+        service.delete(versionEntity.getId());
+
+        verify(versionRepository).delete(versionEntity);
+        verify(events).publishEvent(new SoftwareIndexEvent(software.getId(), Action.UPSERT));
     }
 }
 

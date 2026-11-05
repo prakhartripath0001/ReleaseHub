@@ -3,6 +3,8 @@ package com.yourapp.catalog.software;
 import com.yourapp.catalog.common.dto.PageResponse;
 import com.yourapp.catalog.common.exception.ResourceNotFoundException;
 import com.yourapp.catalog.software.dto.request.CreateSoftwareRequest;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent.Action;
 import com.yourapp.catalog.software.dto.request.UpdateSoftwareRequest;
 import com.yourapp.catalog.software.dto.response.SoftwareResponse;
 import com.yourapp.catalog.software.entity.SoftwareEntity;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,6 +41,9 @@ class SoftwareServiceTest {
 
     @Mock
     private SoftwareMapper mapper;
+
+    @Mock
+    private ApplicationEventPublisher events;
 
     @InjectMocks
     private SoftwareService service;
@@ -71,6 +77,7 @@ class SoftwareServiceTest {
 
         assertThat(result.getName()).isEqualTo("TestApp");
         verify(repository).save(entity);
+        verify(events).publishEvent(new SoftwareIndexEvent(entity.getId(), Action.UPSERT));
     }
 
     @Test
@@ -99,6 +106,20 @@ class SoftwareServiceTest {
         service.delete(entity.getId());
 
         verify(repository).deleteById(entity.getId());
+        verify(events).publishEvent(new SoftwareIndexEvent(entity.getId(), Action.DELETE));
+    }
+
+    @Test
+    void update_shouldPublishUpsert() {
+        UpdateSoftwareRequest request = new UpdateSoftwareRequest();
+        when(repository.findById(entity.getId())).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenReturn(entity);
+        when(mapper.toResponse(entity)).thenReturn(response);
+
+        service.update(entity.getId(), request);
+
+        verify(mapper).updateEntity(entity, request);
+        verify(events).publishEvent(new SoftwareIndexEvent(entity.getId(), Action.UPSERT));
     }
 
     @Test

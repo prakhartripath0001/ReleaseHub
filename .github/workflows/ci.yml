@@ -66,10 +66,33 @@ jobs:
           name: jacoco-coverage-report
           path: catalog-service/target/site/jacoco/
 
+  search-test:
+    name: Build & Test (Search Service)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          cache-dependency-path: 'search-service/pom.xml'
+
+      - name: Grant execute permission for Maven wrapper
+        run: chmod +x ./search-service/mvnw
+
+      - name: Run search service tests
+        working-directory: search-service
+        run: ./mvnw clean test
+
   docker:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, search-test]
     if: github.ref == 'refs/heads/main'
 
     steps:

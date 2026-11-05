@@ -1,13 +1,11 @@
 package com.search_service;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
 class SearchServiceApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void moduleMarker() {
+        // Context startup is covered by SearchIntegrationTest, which needs Elasticsearch and MySQL.
+    }
 }

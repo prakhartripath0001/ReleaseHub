@@ -6,10 +6,13 @@ import com.yourapp.catalog.software.dto.request.CreateSoftwareRequest;
 import com.yourapp.catalog.software.dto.request.UpdateSoftwareRequest;
 import com.yourapp.catalog.software.dto.response.SoftwareResponse;
 import com.yourapp.catalog.software.entity.SoftwareEntity;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent;
+import com.yourapp.catalog.software.event.SoftwareIndexEvent.Action;
 import com.yourapp.catalog.software.mapper.SoftwareMapper;
 import com.yourapp.catalog.software.repository.SoftwareRepository;
 import com.yourapp.catalog.software.specification.SoftwareSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +27,14 @@ public class SoftwareService {
 
     private final SoftwareRepository repository;
     private final SoftwareMapper mapper;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public SoftwareResponse create(CreateSoftwareRequest request) {
         SoftwareEntity entity = mapper.toEntity(request);
-        return mapper.toResponse(repository.save(entity));
+        SoftwareEntity saved = repository.save(entity);
+        events.publishEvent(new SoftwareIndexEvent(saved.getId(), Action.UPSERT));
+        return mapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -61,13 +67,16 @@ public class SoftwareService {
     public SoftwareResponse update(String id, UpdateSoftwareRequest request) {
         SoftwareEntity entity = getOrThrow(id);
         mapper.updateEntity(entity, request);
-        return mapper.toResponse(repository.save(entity));
+        SoftwareEntity saved = repository.save(entity);
+        events.publishEvent(new SoftwareIndexEvent(saved.getId(), Action.UPSERT));
+        return mapper.toResponse(saved);
     }
 
     @Transactional
     public void delete(String id) {
         getOrThrow(id);
         repository.deleteById(id);
+        events.publishEvent(new SoftwareIndexEvent(id, Action.DELETE));
     }
 
     private SoftwareEntity getOrThrow(String id) {
